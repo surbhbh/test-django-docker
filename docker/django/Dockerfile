@@ -25,16 +25,28 @@ RUN mkdir -p $APP_HOME
 
 WORKDIR $APP_HOME
 
-COPY src/requirements.txt ./requirements.txt
+# Changed these COPY commands
+COPY src/requirements.txt ./requirements.txt    # <-- New: Copy requirements first
 
+# Changed this RUN command to separate pip installations
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Changed these COPY commands
+COPY src/ ./                                    # <-- New: Copy src directory
+COPY nginx/ ./nginx/                            # <-- New: Copy nginx directory
+COPY scripts_deploy/ ./scripts_deploy/          # <-- New: Copy scripts_deploy directory
+
+# Split the RUN command for better readability
 RUN mkdir -p ${APP_HOME}/staticfiles ${APP_HOME}/mediafiles && \
-    sed -i "s/\r$//g" src/entrypoint.sh src/start-django.sh src/start-celeryworker.sh src/start-celerybeat.sh src/start-celeryflower.sh && \
+    sed -i "s/\r$//g" entrypoint.sh start-django.sh start-celeryworker.sh start-celerybeat.sh start-celeryflower.sh && \
     mkdir -p ${LOGFILE_ROOT} && \
     chown -R ${UID}:${GID} $HOME_PATH && \
     chmod -R 775 $HOME_PATH
 
+# Added this line to ensure scripts are executable
+RUN chmod +x *.sh                              # <-- New: Make scripts executable
+
 USER ${UID}:${GID}
 
-ENTRYPOINT ["./src/entrypoint.sh"]
-
-    
+ENTRYPOINT ["./entrypoint.sh"]
