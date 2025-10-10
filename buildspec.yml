@@ -42,7 +42,7 @@ phases:
       - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_SOURCE_REPO_URL=${CODEBUILD_SOURCE_REPO_URL}"
       - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_SOURCE_VERSION=${CODEBUILD_SOURCE_VERSION}"
       - echo "[$(date +"${log_datetime_fmt}")] Logging in to Amazon ECR..."
-      - aws ecr get-login-password --region ${ecr_region} | docker login --username AWS --password-stdin ${ECR_URI}
+      - aws ecr get-login-password --region ${ecr_region} | docker login --username AWS --password-stdin 129863420698.dkr.ecr.us-east-1.amazonaws.com
   build:
     commands:
       - echo "[$(date +"${log_datetime_fmt}")] Building django docker image..."
