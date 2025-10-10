@@ -25,15 +25,16 @@ RUN mkdir -p $APP_HOME
 
 WORKDIR $APP_HOME
 
-COPY . $APP_HOME
+COPY src/requirements.txt ./requirements.txt
 
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt && \
-    mkdir -p ${APP_HOME}/staticfiles ${APP_HOME}/mediafiles && \
-    sed -i "s/\r$//g" entrypoint.sh start-django.sh start-celeryworker.sh start-celerybeat.sh start-celeryflower.sh && \
+RUN mkdir -p ${APP_HOME}/staticfiles ${APP_HOME}/mediafiles && \
+    sed -i "s/\r$//g" src/entrypoint.sh src/start-django.sh src/start-celeryworker.sh src/start-celerybeat.sh src/start-celeryflower.sh && \
     mkdir -p ${LOGFILE_ROOT} && \
     chown -R ${UID}:${GID} $HOME_PATH && \
     chmod -R 775 $HOME_PATH
 
 USER ${UID}:${GID}
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["./src/entrypoint.sh"]
+
+    
