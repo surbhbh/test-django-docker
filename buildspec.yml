@@ -1,0 +1,91 @@
+version: 0.2
+
+env:
+  variables:
+    log_datetime_fmt: "%Y-%m-%d %H:%M:%S"
+    ecr_region: "eu-west-2"
+    dockerfile_path_django: "./docker/django/Dockerfile"
+    dockerfile_path_nginx: "./docker/nginx/Dockerfile"
+
+phases:
+  install:
+    commands:
+      - ecr_repo_name_django="${APP_NAME}-web"
+      - ecr_repo_name_nginx="${APP_NAME}-nginx"
+      - img_name_django="${ecr_repo_name_django}-${DEPLOY_TARGET_ENV}"
+      - img_name_nginx="${ecr_repo_name_nginx}-${DEPLOY_TARGET_ENV}"
+      - tag_to_ecr_django="${ECR_URI}/${ecr_repo_name_django}:${img_name_django}"
+      - tag_to_ecr_nginx="${ECR_URI}/${ecr_repo_name_nginx}:${img_name_nginx}"
+  pre_build:
+    commands:
+      - aws --version
+      - echo "[$(date +"${log_datetime_fmt}")] APP_NAME=${APP_NAME}"
+      - echo "[$(date +"${log_datetime_fmt}")] HOME_PATH=${HOME_PATH}"
+      - echo "[$(date +"${log_datetime_fmt}")] LOGFILE_ROOT=${LOGFILE_ROOT}"
+      - echo "[$(date +"${log_datetime_fmt}")] UID=${UID}"
+      - echo "[$(date +"${log_datetime_fmt}")] GID=${GID}"
+      - echo "[$(date +"${log_datetime_fmt}")] DEPLOY_TARGET_ENV=${DEPLOY_TARGET_ENV}"
+      - echo "[$(date +"${log_datetime_fmt}")] ECR_URI=${ECR_URI}"
+      - echo "[$(date +"${log_datetime_fmt}")] ecr_region=${ecr_region}"
+      - echo "[$(date +"${log_datetime_fmt}")] ecr_repo_name_django=${ecr_repo_name_django}"
+      - echo "[$(date +"${log_datetime_fmt}")] ecr_repo_name_nginx=${ecr_repo_name_nginx}"
+      - echo "[$(date +"${log_datetime_fmt}")] img_name_django=${img_name_django}"
+      - echo "[$(date +"${log_datetime_fmt}")] img_name_nginx=${img_name_nginx}"
+      - echo "[$(date +"${log_datetime_fmt}")] dockerfile_path_django=${dockerfile_path_django}"
+      - echo "[$(date +"${log_datetime_fmt}")] dockerfile_path_nginx=${dockerfile_path_nginx}"
+      - echo "[$(date +"${log_datetime_fmt}")] tag_to_ecr_django=${tag_to_ecr_django}"
+      - echo "[$(date +"${log_datetime_fmt}")] tag_to_ecr_nginx=${tag_to_ecr_nginx}"
+      - echo "[$(date +"${log_datetime_fmt}")] AWS_REGION=${AWS_REGION}"
+      - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_BUILD_ARN=${CODEBUILD_BUILD_ARN}"
+      - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_BUILD_ID=${CODEBUILD_BUILD_ID}"
+      - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_RESOLVED_SOURCE_VERSION=${CODEBUILD_RESOLVED_SOURCE_VERSION}"
+      - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_SOURCE_REPO_URL=${CODEBUILD_SOURCE_REPO_URL}"
+      - echo "[$(date +"${log_datetime_fmt}")] CODEBUILD_SOURCE_VERSION=${CODEBUILD_SOURCE_VERSION}"
+      - echo "[$(date +"${log_datetime_fmt}")] Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region ${ecr_region} | docker login --username AWS --password-stdin ${ECR_URI}
+  build:
+    commands:
+      - echo "[$(date +"${log_datetime_fmt}")] Building django docker image..."
+      - >
+        docker build .
+        --no-cache
+        --tag "${img_name_django}"
+        --file "${dockerfile_path_django}"
+        --build-arg APP_NAME="${APP_NAME}"
+        --build-arg HOME_PATH="${HOME_PATH}"
+        --build-arg LOGFILE_ROOT="${LOGFILE_ROOT}"
+        --build-arg UID="${UID}"
+        --build-arg GID="${GID}"
+      - docker tag "${img_name_django}" "${tag_to_ecr_django}"
+      - echo "[$(date +"${log_datetime_fmt}")] Building nginx docker image..."
+      - >
+        docker build .
+        --no-cache
+        --tag "${img_name_nginx}"
+        --file "${dockerfile_path_nginx}"
+        --build-arg APP_NAME="${APP_NAME}"
+        --build-arg HOME_PATH="${HOME_PATH}"
+        --build-arg UID="${UID}"
+        --build-arg GID="${GID}"
+      - docker tag "${img_name_nginx}" "${tag_to_ecr_nginx}"
+  post_build:
+    commands:
+      - echo "[$(date +"${log_datetime_fmt}")] Build completed."
+      - echo "[$(date +"${log_datetime_fmt}")] Pushing django image to AWS ECR..."
+      - docker push "${tag_to_ecr_django}"
+      - echo "[$(date +"${log_datetime_fmt}")] Pushing nginx image to AWS ECR..."
+      - docker push "${tag_to_ecr_nginx}"
+      - echo "[$(date +"${log_datetime_fmt}")] Push completed."
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts_deploy/stop-application.sh
+    - scripts_deploy/before-install.sh
+    - scripts_deploy/after-install.sh
+    - scripts_deploy/start-application.sh
+    - docker-compose-common.yml
+    - docker-compose-${DEPLOY_TARGET_ENV}.yml
+    - nginx/default.conf
+    - nginx/default.conf.template
+    - nginx/nginx-logrotate-${DEPLOY_TARGET_ENV}.conf

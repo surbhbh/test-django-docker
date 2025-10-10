@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  django:
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SETTINGS_MODULE=config.settings.dev
+    ports:
+      - "8000:8000"
+    command: ./start-django.sh
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    command: ./start-celeryworker.sh
+    volumes:
+      - ./src:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    command: ./start-celerybeat.sh
+    volumes:
+      - ./src:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+
+  celery_flower:
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+    command: ./start-celeryflower.sh
+    volumes:
+      - ./src:/app
+    env_file:
+      - .env
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - postgres
+
+  nginx:
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+
