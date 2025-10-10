@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     log_datetime_fmt: "%Y-%m-%d %H:%M:%S"
-    ecr_region: "eu-west-2"
+    ecr_region: "us-east-1"
     dockerfile_path_django: "./docker/django/Dockerfile"
     dockerfile_path_nginx: "./docker/nginx/Dockerfile"
 
